@@ -42,7 +42,8 @@ def home():
            f"/api/v1.0/precipitation<br/>"
            f"/api/v1.0/stations<br/>"
            f"/api/v1.0/tobs<br/>"
-           f"/api/v1.0/<start> and /api/v1.0/<start>/<end><br/>")
+           f"/api/v1.0/<start><br>"
+           f"/api/v1.0/<start>/<end><br/>")
 
 @app.route("/api/v1.0/precipitation")
 def prcp():
@@ -84,6 +85,7 @@ def stations():
 
 @app.route("/api/v1.0/tobs")
 def tobs():
+    #Create a session
     session = Session(engine)
 
     #Find the last day in the data set
@@ -99,12 +101,61 @@ def tobs():
     #Create empty list
     tobs_list = []
 
+    #Create a dictionary from the data we just pulled
     for date, tobs in results:
         tobs_dict = {}
         tobs_dict[date] = tobs
         tobs_list.append(tobs_dict)
 
     return jsonify((tobs_list))
+
+@app.route("/api/v1.0/<start>")
+def temp_range(start):
+    #Create a session
+    session = Session(engine)
+
+    start_list = []
+
+    #Query the data using the functions to get the mathematical values
+    results = session.query(measure.date, func.min(measure.tobs), func.max(measure.tobs), func.avg(measure.tobs)).\
+                filter(measure.date >= start).group_by(measure.date).all()
+
+    session.close()
+
+    #Create a dictionary from the data we just pulled
+    for date, min, max, avg in results:
+        start_dict = {}
+        start_dict["Date"] = date
+        start_dict["Min"] = min
+        start_dict["Max"] = max
+        start_dict["Avg"] = avg
+        start_list.append(start_dict)
+
+    return jsonify(start_list)
+
+@app.route("/api/v1.0/<start>/<end>")
+def temp_range_end(start,end):
+    #Create a session
+    session = Session(engine)
+
+    start_list = []
+
+    #Query the data using the functions to get the mathematical values
+    results = session.query(measure.date, func.min(measure.tobs), func.max(measure.tobs), func.avg(measure.tobs)).\
+                filter(measure.date >= start, measure.date <= end).group_by(measure.date).all()
+
+    session.close()
+
+    #Create a dictionary from the data we just pulled
+    for date, min, max, avg in results:
+        start_dict = {}
+        start_dict["Date"] = date
+        start_dict["Min"] = min
+        start_dict["Max"] = max
+        start_dict["Avg"] = avg
+        start_list.append(start_dict)
+
+    return jsonify(start_list)
 
 
 if __name__ == "__main__":
