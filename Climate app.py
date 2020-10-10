@@ -8,7 +8,7 @@ import sqlalchemy
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, func
-
+import datetime as dt
 ###################################
 #Database Setup
 ###################################
@@ -70,10 +70,10 @@ def stations():
     #Create a session
     session = Session(engine)
 
-    session.close()
-
     #Query data for date and measure
     results = session.query(station.station, station.name).all()
+
+    session.close()
 
     stations = {}
 
@@ -82,12 +82,29 @@ def stations():
 
     return jsonify(stations)
 
-app.route()
+@app.route("/api/v1.0/tobs")
+def tobs():
+    session = Session(engine)
 
+    #Find the last day in the data set
+    last_day = session.query(measure.date).order_by(measure.date.desc()).first()
 
+    # Get the data for one year ago
+    last_year_day = (dt.datetime.strptime(last_day[0], '%Y-%m-%d') - dt.timedelta(days=365)).strftime('%Y-%m-%d')
 
+    results= session.query(measure.date, measure.tobs).filter(measure.date >= last_year_day).order_by(measure.date).all()
 
+    session.close()
 
+    #Create empty list
+    tobs_list = []
+
+    for date, tobs in results:
+        tobs_dict = {}
+        tobs_dict[date] = tobs
+        tobs_list.append(tobs_dict)
+
+    return jsonify((tobs_list))
 
 
 if __name__ == "__main__":
